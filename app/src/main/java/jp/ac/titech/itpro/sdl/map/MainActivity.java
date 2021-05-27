@@ -23,6 +23,9 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import android.widget.Button;
+import android.view.View;
+import com.google.android.gms.tasks.OnSuccessListener;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private final static String TAG = MainActivity.class.getSimpleName();
@@ -40,11 +43,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationRequest request;
     private LocationCallback callback;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
+
+        Button apdate_button = findViewById(R.id.apdate_button);
+        apdate_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                reload();
+            }
+        });
 
         infoView = findViewById(R.id.info_view);
         SupportMapFragment fragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
@@ -64,16 +76,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 Log.d(TAG, "onLocationResult");
-                Location location = locationResult.getLastLocation();
-                LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
-                infoView.setText(getString(R.string.latlng_format, ll.latitude, ll.longitude));
-                if (map == null) {
-                    Log.d(TAG, "onLocationResult: map == null");
-                    return;
-                }
-                map.animateCamera(CameraUpdateFactory.newLatLng(ll));
             }
         };
+
+
     }
 
     @Override
@@ -87,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onResume();
         Log.d(TAG, "onResume");
         startLocationUpdate(true);
+        reload();
     }
 
     @Override
@@ -123,6 +130,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
         locationClient.requestLocationUpdates(request, callback, null);
+
     }
 
     @Override
@@ -136,5 +144,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void stopLocationUpdate() {
         Log.d(TAG, "stopLocationUpdate");
         locationClient.removeLocationUpdates(callback);
+    }
+
+    private void reload() {
+        Log.d(TAG, "reload");
+        for (String permission : PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, PERMISSIONS, REQ_PERMISSIONS);
+
+                return;
+            }
+        }
+        locationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
+                infoView.setText(getString(R.string.latlng_format, ll.latitude, ll.longitude));
+                if (map == null) {
+                    Log.d(TAG, "onLocationResult: map == null");
+                    return;
+                }
+                map.animateCamera(CameraUpdateFactory.newLatLng(ll));
+            }
+        });
     }
 }
